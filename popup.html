@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      width: 280px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-size: 13px;
+      color: #1a1a1a;
+      background: #fff;
+    }
+
+    .header {
+      background: #0071ce;
+      color: #fff;
+      padding: 12px 14px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .header-text h1 { font-size: 14px; font-weight: 700; }
+    .header-text p  { font-size: 11px; opacity: 0.85; margin-top: 1px; }
+
+    /* Deal summary cards */
+    .deal-summary {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1px;
+      background: #f0f0f0;
+      border-bottom: 1px solid #f0f0f0;
+    }
+
+    .deal-cell {
+      background: #fff;
+      padding: 10px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .deal-cell .count {
+      font-size: 22px;
+      font-weight: 700;
+      line-height: 1;
+    }
+
+    .deal-cell .label {
+      font-size: 10px;
+      color: #666;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+    }
+
+    .deal-cell.clearance  .count { color: #e85d04; }
+    .deal-cell.rollback   .count { color: #0071ce; }
+    .deal-cell.reduced    .count { color: #007600; }
+    .deal-cell.bestseller .count { color: #6a0dad; }
+
+    /* Toggles */
+    .section {
+      padding: 11px 14px;
+      border-bottom: 1px solid #f0f0f0;
+    }
+
+    .section-title {
+      font-size: 10px;
+      font-weight: 600;
+      color: #999;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 9px;
+    }
+
+    .toggle-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 9px;
+    }
+    .toggle-row:last-child { margin-bottom: 0; }
+
+    .toggle-label { flex: 1; padding-right: 10px; line-height: 1.3; }
+    .toggle-label small { display: block; color: #999; font-size: 11px; margin-top: 1px; }
+
+    .toggle { position: relative; width: 36px; height: 20px; flex-shrink: 0; }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+
+    .slider {
+      position: absolute; inset: 0;
+      background: #ccc; border-radius: 20px; cursor: pointer;
+      transition: background 0.2s;
+    }
+    .slider::before {
+      content: ''; position: absolute;
+      width: 14px; height: 14px; left: 3px; top: 3px;
+      background: #fff; border-radius: 50%;
+      transition: transform 0.2s;
+    }
+    input:checked + .slider { background: #0071ce; }
+    input:checked + .slider::before { transform: translateX(16px); }
+
+    /* Status bar */
+    .status-bar {
+      padding: 8px 14px;
+      font-size: 11px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: #f7f9fc;
+    }
+    .dot {
+      width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0;
+      background: #ccc;
+    }
+    .dot.on  { background: #00a651; }
+    .dot.off { background: #ccc; }
+
+    .no-data { color: #bbb; font-style: italic; }
+
+    /* Deal preview panel */
+    .deal-cell { cursor: default; transition: background 0.15s; }
+    .deal-cell:hover { background: #f7f9fc; }
+
+    /* Page-level deal stats bar */
+    #dealStats {
+      padding: 5px 14px;
+      font-size: 10px;
+      color: #666;
+      background: #f7f9fc;
+      border-bottom: 1px solid #f0f0f0;
+      display: none;
+    }
+    #dealStats.visible { display: flex; gap: 12px; }
+    .stat-item { display: flex; align-items: center; gap: 4px; }
+    .stat-label { color: #999; }
+    .stat-value { font-weight: 700; color: #c0392b; }
+
+    #dealPreview {
+      border-bottom: 1px solid #f0f0f0;
+      background: #fff;
+      overflow: hidden;
+      max-height: 0;
+      transition: max-height 0.22s ease;
+    }
+    #dealPreview.visible { max-height: 360px; }
+    .preview-list { padding: 4px 0; overflow-y: auto; max-height: 315px; }
+
+    .preview-header {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      padding: 8px 14px 6px;
+      border-bottom: 1px solid #f5f5f5;
+    }
+    .preview-type-dot {
+      width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+    }
+    .preview-title { font-size: 11px; font-weight: 700; flex: 1; }
+    .preview-count { font-size: 10px; color: #999; }
+
+    .preview-item {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      padding: 5px 14px;
+      text-decoration: none;
+      color: inherit;
+    }
+    .preview-item:hover { background: #f0f7ff; }
+
+    .preview-thumb {
+      width: 40px; height: 40px;
+      object-fit: contain;
+      border-radius: 3px;
+      background: #f5f5f5;
+      flex-shrink: 0;
+    }
+    .preview-thumb-placeholder {
+      width: 40px; height: 40px;
+      background: #f0f0f0;
+      border-radius: 3px;
+      flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px;
+    }
+
+    .preview-info { flex: 1; min-width: 0; }
+    .preview-name {
+      font-size: 11px;
+      line-height: 1.35;
+      color: #1a1a1a;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+    .preview-price {
+      font-size: 12px;
+      font-weight: 700;
+      color: #1a1a1a;
+      margin-top: 2px;
+    }
+
+    .preview-meta {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 2px;
+      flex-wrap: wrap;
+    }
+    .preview-savings {
+      font-size: 10px;
+      font-weight: 700;
+      color: #c0392b;
+    }
+    .preview-rating {
+      font-size: 10px;
+      color: #888;
+    }
+    .preview-best-deal {
+      display: inline-block;
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: 0.4px;
+      text-transform: uppercase;
+      color: #fff;
+      background: #c0392b;
+      border-radius: 3px;
+      padding: 1px 5px;
+      flex-shrink: 0;
+    }
+
+    .preview-empty {
+      padding: 12px 14px;
+      font-size: 11px;
+      color: #bbb;
+      font-style: italic;
+    }
+
+    /* Min savings select */
+    .pct-select {
+      font-size: 11px;
+      font-family: inherit;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      padding: 3px 6px;
+      color: #1a1a1a;
+      background: #fff;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+    .pct-select:focus { outline: 1px solid #0071ce; }
+
+    .quick-links {
+      display: flex;
+      gap: 1px;
+      background: #f0f0f0;
+      border-bottom: 1px solid #f0f0f0;
+    }
+    .ql {
+      flex: 1;
+      text-align: center;
+      padding: 7px 4px;
+      font-size: 11px;
+      font-weight: 600;
+      color: #0071ce;
+      background: #fff;
+      text-decoration: none;
+    }
+    .ql:hover { background: #f0f7ff; }
+
+    /* Review nudge */
+    #reviewNudge {
+      display: none;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 14px;
+      background: #fff8e1;
+      border-bottom: 1px solid #ffe082;
+      font-size: 11px;
+      color: #5d4037;
+    }
+    #reviewNudge a {
+      color: #e65100;
+      font-weight: 700;
+      text-decoration: none;
+      white-space: nowrap;
+    }
+    #reviewNudge a:hover { text-decoration: underline; }
+    #dismissNudge {
+      margin-left: auto;
+      background: none;
+      border: none;
+      font-size: 11px;
+      color: #999;
+      cursor: pointer;
+      padding: 0;
+      flex-shrink: 0;
+    }
+    #dismissNudge:hover { color: #555; }
+
+    /* Support / Ko-fi bar */
+    .support-bar {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      padding: 7px 14px;
+      background: #f7f9fc;
+      border-bottom: 1px solid #f0f0f0;
+    }
+    .support-bar a {
+      font-size: 10px;
+      color: #999;
+      text-decoration: none;
+      letter-spacing: 0.2px;
+    }
+    .support-bar a:hover { color: #0071ce; text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="header-text">
+      <h1>Walmart Smart Filter</h1>
+      <p id="headerSub">Checking page...</p>
+    </div>
+  </div>
+
+  <!-- Live deal counts -->
+  <div class="deal-summary" id="dealSummary">
+    <div class="deal-cell clearance">
+      <span class="count" id="cntClearance">—</span>
+      <span class="label">Clearance</span>
+    </div>
+    <div class="deal-cell rollback">
+      <span class="count" id="cntRollback">—</span>
+      <span class="label">Rollback</span>
+    </div>
+    <div class="deal-cell reduced">
+      <span class="count" id="cntReduced">—</span>
+      <span class="label">Reduced</span>
+    </div>
+    <div class="deal-cell bestseller">
+      <span class="count" id="cntBestseller">—</span>
+      <span class="label">Best Seller</span>
+    </div>
+  </div>
+
+  <!-- Page-level savings stats (visible when data available) -->
+  <div id="dealStats">
+    <div class="stat-item">
+      <span class="stat-label">Avg</span>
+      <span class="stat-value" id="statAvg">—</span>
+    </div>
+    <div class="stat-item">
+      <span class="stat-label">Best</span>
+      <span class="stat-value" id="statBest">—</span>
+    </div>
+  </div>
+
+  <!-- Deal preview panel (appears on hover of count cells) -->
+  <div id="dealPreview">
+    <div class="preview-header">
+      <span class="preview-type-dot" id="previewDot"></span>
+      <span class="preview-title" id="previewTitle"></span>
+      <span class="preview-count" id="previewCount"></span>
+    </div>
+    <div class="preview-list" id="previewList"></div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Settings</div>
+
+    <div class="toggle-row">
+      <div class="toggle-label">
+        Walmart Direct only
+        <small>Filter search to Walmart-sold items</small>
+      </div>
+      <label class="toggle">
+        <input type="checkbox" id="filterThirdParty" />
+        <span class="slider"></span>
+      </label>
+    </div>
+
+    <div class="toggle-row">
+      <div class="toggle-label">
+        Highlight deals
+        <small>Color border on clearance / rollback items</small>
+      </div>
+      <label class="toggle">
+        <input type="checkbox" id="highlightDeals" />
+        <span class="slider"></span>
+      </label>
+    </div>
+
+    <div class="toggle-row">
+      <div class="toggle-label">
+        Show deal badge
+        <small>Label on each deal card</small>
+      </div>
+      <label class="toggle">
+        <input type="checkbox" id="showDealBadge" />
+        <span class="slider"></span>
+      </label>
+    </div>
+
+    <div class="toggle-row">
+      <div class="toggle-label">
+        Min. savings
+        <small>Only highlight deals at least X% off</small>
+      </div>
+      <select id="minSavingsPct" class="pct-select">
+        <option value="0">All deals</option>
+        <option value="10">≥ 10% off</option>
+        <option value="20">≥ 20% off</option>
+        <option value="30">≥ 30% off</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Shipping &amp; Pickup</div>
+
+    <div class="toggle-row">
+      <div class="toggle-label">
+        Free shipping only
+        <small>Filter to 2-day free shipping items</small>
+      </div>
+      <label class="toggle">
+        <input type="checkbox" id="freeShippingOnly" />
+        <span class="slider"></span>
+      </label>
+    </div>
+
+    <div class="toggle-row">
+      <div class="toggle-label">
+        Pickup available only
+        <small>Filter to in-store pickup items</small>
+      </div>
+      <label class="toggle">
+        <input type="checkbox" id="pickupOnly" />
+        <span class="slider"></span>
+      </label>
+    </div>
+  </div>
+
+  <!-- Review nudge (shown after 10 deal-finding sessions) -->
+  <div id="reviewNudge">
+    <span>Enjoying the extension?</span>
+    <a href="https://chromewebstore.google.com/detail/walmart-smart-filter/EXTENSION_ID/reviews" target="_blank" rel="noopener">⭐ Leave a review</a>
+    <button id="dismissNudge">✕</button>
+  </div>
+
+  <!-- Quick links -->
+  <div class="quick-links">
+    <a class="ql" href="https://www.walmart.com/search?q=clearance&facet=retailer_type%3AWalmart" target="_blank">Clearance Deals</a>
+    <a class="ql" href="https://www.walmart.com/search?q=rollback&facet=retailer_type%3AWalmart" target="_blank">Rollback Items</a>
+  </div>
+
+  <!-- Support / Ko-fi -->
+  <div class="support-bar">
+    <a href="https://ko-fi.com/YOURUSERNAME" target="_blank" rel="noopener">♥ Support this extension</a>
+    <a href="https://chromewebstore.google.com/detail/walmart-smart-filter/EXTENSION_ID" target="_blank" rel="noopener">★ Rate it</a>
+  </div>
+
+  <div class="status-bar">
+    <div class="dot" id="statusDot"></div>
+    <span id="statusText">Loading...</span>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Walmart Smart Filter — Chrome Extension</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #f5f7fa;
+      color: #1a1a1a;
+    }
+    header {
+      background: #0071ce;
+      color: #fff;
+      padding: 56px 24px 48px;
+      text-align: center;
+    }
+    header h1 { font-size: 32px; font-weight: 800; margin-bottom: 12px; }
+    header p  { font-size: 17px; opacity: 0.9; max-width: 540px; margin: 0 auto 28px; line-height: 1.6; }
+    .cta {
+      display: inline-block;
+      background: #fff;
+      color: #0071ce;
+      font-weight: 700;
+      font-size: 15px;
+      padding: 13px 32px;
+      border-radius: 6px;
+      text-decoration: none;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    }
+    .cta:hover { background: #e3f0ff; }
+    .features {
+      max-width: 800px;
+      margin: 48px auto;
+      padding: 0 24px;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 20px;
+    }
+    .feature {
+      background: #fff;
+      border-radius: 10px;
+      padding: 24px 20px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+    }
+    .feature .icon { font-size: 28px; margin-bottom: 10px; }
+    .feature h3 { font-size: 15px; font-weight: 700; margin-bottom: 6px; }
+    .feature p  { font-size: 13px; color: #555; line-height: 1.55; }
+    footer {
+      text-align: center;
+      padding: 28px;
+      font-size: 12px;
+      color: #aaa;
+    }
+    footer a { color: #0071ce; text-decoration: none; }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>Walmart Smart Filter</h1>
+  <p>Instantly filter Walmart search to Walmart Direct only.<br>Spot Clearance, Rollback &amp; Reduced Price deals at a glance.</p>
+  <a class="cta" href="https://chromewebstore.google.com/detail/walmart-smart-filter/EXTENSION_ID" target="_blank">
+    Add to Chrome — Free
+  </a>
+</header>
+
+<div class="features">
+  <div class="feature">
+    <div class="icon">🔵</div>
+    <h3>Walmart Direct Filter</h3>
+    <p>One click removes all third-party marketplace sellers from search results.</p>
+  </div>
+  <div class="feature">
+    <div class="icon">🏷️</div>
+    <h3>Deal Badges</h3>
+    <p>Clearance, Rollback, Reduced Price highlighted with exact discount % on every card.</p>
+  </div>
+  <div class="feature">
+    <div class="icon">📊</div>
+    <h3>Live Deal Stats</h3>
+    <p>See average and best savings % on the current page — instantly.</p>
+  </div>
+  <div class="feature">
+    <div class="icon">✂️</div>
+    <h3>Min. Savings Filter</h3>
+    <p>Set a 10%, 20%, or 30% minimum — see only deals worth your time.</p>
+  </div>
+</div>
+
+<footer>
+  <p>
+    <a href="privacy.html">Privacy Policy</a> &nbsp;·&nbsp;
+    <a href="https://ko-fi.com/YOURUSERNAME">Support the developer</a> &nbsp;·&nbsp;
+    &copy; 2025 Walmart Smart Filter
+  </p>
+</footer>
+
+</body>
+</html>

@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Privacy Policy — Walmart Smart Filter</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-size: 15px;
+      line-height: 1.7;
+      color: #1a1a1a;
+      max-width: 760px;
+      margin: 48px auto;
+      padding: 0 24px;
+    }
+    h1 { font-size: 26px; color: #0071ce; margin-bottom: 4px; }
+    h2 { font-size: 17px; margin-top: 32px; margin-bottom: 6px; }
+    p, ul { margin: 0 0 14px; }
+    ul { padding-left: 22px; }
+    li { margin-bottom: 4px; }
+    .updated { font-size: 13px; color: #888; margin-bottom: 32px; }
+    a { color: #0071ce; }
+  </style>
+</head>
+<body>
+
+<h1>Privacy Policy</h1>
+<p class="updated">Walmart Smart Filter Chrome Extension &mdash; Last updated: April 9, 2025</p>
+
+<h2>Overview</h2>
+<p>
+  Walmart Smart Filter ("the Extension") is a browser extension that helps users filter
+  Walmart.com search results to show only Walmart-sold items and highlights clearance,
+  rollback, and reduced-price deals. We take your privacy seriously. This policy explains
+  exactly what data the Extension accesses and how it is used.
+</p>
+
+<h2>Data We Do NOT Collect</h2>
+<ul>
+  <li>We do <strong>not</strong> collect, transmit, or store any personally identifiable information (PII).</li>
+  <li>We do <strong>not</strong> track your browsing history or search queries.</li>
+  <li>We do <strong>not</strong> send any data to external servers.</li>
+  <li>We do <strong>not</strong> use cookies or third-party analytics.</li>
+  <li>We do <strong>not</strong> collect purchase history or financial information.</li>
+</ul>
+
+<h2>Data Stored Locally on Your Device</h2>
+<p>The Extension stores the following data exclusively on your device using Chrome's built-in storage API:</p>
+<ul>
+  <li><strong>User settings</strong> (chrome.storage.sync) — your toggle preferences such as "Walmart Direct only," "Highlight deals," and "Min. savings %" filter. This data syncs across your Chrome devices via your Google account but is never sent to our servers.</li>
+  <li><strong>Usage session count</strong> (chrome.storage.local) — a simple integer counting how many Walmart deal-finding sessions you have completed, used solely to decide when to show a "please rate us" prompt. This value never leaves your device.</li>
+  <li><strong>Review dismissed flag</strong> (chrome.storage.local) — a boolean recording whether you dismissed the review prompt. Never leaves your device.</li>
+</ul>
+
+<h2>Permissions Used</h2>
+<ul>
+  <li><strong>activeTab / tabs</strong> — to detect whether the current tab is on walmart.com and to communicate between the popup and the page. The Extension reads page content on walmart.com only to detect deal labels and prices in the search results DOM.</li>
+  <li><strong>storage</strong> — to save and sync your settings preferences described above.</li>
+  <li><strong>host_permissions (walmart.com)</strong> — required to inject the content script that reads deal information from Walmart search result pages.</li>
+</ul>
+
+<h2>Affiliate Links</h2>
+<p>
+  When you click a product link in the Extension's deal preview panel, that link may include
+  an affiliate tracking parameter through the Walmart Affiliate Program (Impact.com). This means
+  that if you purchase a product after clicking through, the Extension developer may earn a small
+  commission at no extra cost to you. The affiliate link does not share any personal information
+  with Walmart or Impact.com beyond what a standard Walmart.com page visit would share.
+</p>
+
+<h2>Third-Party Services</h2>
+<p>
+  The Extension does not integrate with any third-party analytics, advertising, or tracking services.
+  Product images and data displayed in the preview panel are loaded directly from Walmart's own CDN
+  (walmartimages.com), subject to Walmart's own privacy policy.
+</p>
+
+<h2>Children's Privacy</h2>
+<p>
+  The Extension is not directed at children under 13 and does not knowingly collect any data
+  from children.
+</p>
+
+<h2>Changes to This Policy</h2>
+<p>
+  We may update this Privacy Policy to reflect changes in the Extension's functionality. When we do,
+  we will update the "Last updated" date at the top of this page. Continued use of the Extension
+  after changes constitutes acceptance of the updated policy.
+</p>
+
+<h2>Contact</h2>
+<p>
+  If you have any questions about this Privacy Policy, please open an issue on the
+  Extension's support page or contact us through the Chrome Web Store listing.
+</p>
+
+</body>
+</html>
