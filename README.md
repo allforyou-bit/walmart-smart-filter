@@ -69,7 +69,7 @@ Walmart search results mix **Walmart-sold items** with **third-party marketplace
 
 If this extension saved you money, consider supporting development:
 
-☕ [Buy me a coffee on Ko-fi](https://ko-fi.com/allforyou-bit)
+☕ [Buy me a coffee on Ko-fi](https://ko-fi.com/kaylee10786)
 
 ---
 
