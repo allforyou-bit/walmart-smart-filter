@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Walmart Smart Filter",
   "version": "1.5.0",
-  "description": "Instantly filter Walmart search to Walmart Direct only. Highlights Clearance, Rollback & Reduced Price deals with colored borders. Shows live deal count on the icon.",
+  "description": "Filter Walmart search to Walmart Direct only. Highlights Clearance, Rollback & deals with savings %. Live deal dashboard.",
   "permissions": ["storage", "activeTab", "tabs"],
   "host_permissions": ["https://www.walmart.com/*"],
   "background": {

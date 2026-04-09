@@ -4,7 +4,7 @@
 
 [![Version](https://img.shields.io/badge/version-1.5.0-blue)](https://github.com/allforyou-bit/walmart-smart-filter/releases)
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
-[![Chrome Web Store](https://img.shields.io/badge/Chrome-Web%20Store-yellow)](https://chromewebstore.google.com/detail/walmart-smart-filter/EXTENSION_ID)
+[![Chrome Web Store](https://img.shields.io/badge/Chrome-Web%20Store-yellow)](https://chromewebstore.google.com/detail/walmart-smart-filter/emkhcglnplcglmbckhcajioeglkoammn)
 
 ---
 
@@ -33,7 +33,7 @@ Walmart search results mix **Walmart-sold items** with **third-party marketplace
 ## Installation
 
 ### From Chrome Web Store *(recommended)*
-[Add to Chrome →](https://chromewebstore.google.com/detail/walmart-smart-filter/EXTENSION_ID)
+[Add to Chrome →](https://chromewebstore.google.com/detail/walmart-smart-filter/emkhcglnplcglmbckhcajioeglkoammn)
 
 ### Manual Install (Developer Mode)
 1. Download the latest [release ZIP](https://github.com/allforyou-bit/walmart-smart-filter/releases/latest)
