@@ -1,320 +1,284 @@
 # -*- coding: utf-8 -*-
 """
-Chrome Web Store Playwright Automation
-Google login 1 time only — everything else is automated.
+Chrome Web Store Auto Submit — API Method
+=========================================
+User action required: ONE click of "Allow" in the browser (Google security requirement).
+Everything else is fully automated.
+
 Run: python cws_submit.py
 """
 
-import sys, time, pathlib, json
-from playwright.sync_api import sync_playwright, TimeoutError as PWTimeout
+import sys, os, json, time, pathlib, webbrowser, urllib.request, urllib.parse, urllib.error
+from http.server import HTTPServer, BaseHTTPRequestHandler
+import threading
 
-# ── Paths & Content ───────────────────────────────────────────────────────────
+BASE     = pathlib.Path(__file__).parent
+ZIP_PATH = BASE.parent / 'walmart-filter-extension.zip'
+CREDS    = BASE / '.cws_creds.json'
 
-ZIP_PATH    = pathlib.Path('C:/Users/kayky/Desktop/walmart-filter-extension.zip')
-STATE_FILE  = pathlib.Path('C:/Users/kayky/Desktop/walmart-filter-extension/.browser_state.json')
-DASHBOARD   = 'https://chromewebstore.google.com/devconsole'
-
-SHORT_DESC = (
-    "Filter Walmart search to Walmart Direct only. "
-    "Highlights Clearance, Rollback & deals with savings % and star ratings."
-)
+# Chrome Web Store API
+UPLOAD_URL = 'https://www.googleapis.com/upload/chromewebstore/v1.1/items'
+ITEMS_URL  = 'https://www.googleapis.com/chromewebstore/v1.1/items'
+TOKEN_URL  = 'https://oauth2.googleapis.com/token'
+AUTH_URL   = 'https://accounts.google.com/o/oauth2/v2/auth'
+SCOPE      = 'https://www.googleapis.com/auth/chromewebstore'
+PORT       = 9005
 
 FULL_DESC = """\
-Stop scrolling past third-party sellers. Find the real Walmart deals in seconds.
+Stop scrolling past third-party sellers. Find real Walmart deals in seconds.
 
 WALMART DIRECT FILTER
-Automatically filters search results to show only items sold and shipped by Walmart.
-No third-party marketplace sellers.
+Automatically filters search results to Walmart-sold items only. No third-party marketplace sellers. One click to toggle.
 
 DEAL BADGES WITH SAVINGS %
-Clearance, Rollback, Reduced Price, and Best Seller items are flagged with colored
-borders and badges showing the exact discount percentage (e.g., "Clearance - 43% off").
+Clearance, Rollback, Reduced Price, and Best Seller items highlighted with colored borders and the exact discount % on each card. Example: "Clearance - 43% off".
 
 LIVE DEAL DASHBOARD
-Click the extension icon to see:
-- Count of Clearance / Rollback / Reduced / Best Seller items on the current page
-- Average savings % and best savings % across all deals
-- Hover any count for a deal preview with thumbnail, price, savings %, and star rating
+Click the extension icon to see the count of each deal type, average savings % and best savings % on the current page. Hover any count for a preview panel showing product thumbnails, prices, and star ratings sorted best-first.
 
 MIN. SAVINGS FILTER
-Show only deals that are 10%, 20%, or 30% or more off. Cut through noise.
+Set a minimum threshold. Show only deals that are 10%, 20%, or 30% or more off. Cut through the noise.
 
 SHIPPING & PICKUP FILTERS
-Filter to free 2-day shipping or in-store pickup items only.
+Filter results to free 2-day shipping or in-store pickup items only.
 
 KEYBOARD SHORTCUT
 Press Ctrl+Shift+W (Mac: Cmd+Shift+W) to instantly toggle the Walmart Direct filter.
 
-PRIVACY: Zero data collection. Settings stored locally in your browser only.
-No external servers. No analytics. No tracking.
+PRIVACY: Zero data collection. Settings stored locally in your browser only. No external servers. No analytics. No tracking.
 Privacy Policy: https://allforyou-bit.github.io/walmart-smart-filter/privacy.html"""
 
+SHORT_DESC = "Filter Walmart search to Walmart Direct only. Highlights Clearance, Rollback & deals with savings % and star ratings."
 PRIVACY_URL = 'https://allforyou-bit.github.io/walmart-smart-filter/privacy.html'
 
-# ── Helpers ───────────────────────────────────────────────────────────────────
+# ── OAuth2 server ─────────────────────────────────────────────────────────────
 
-def log(msg): print(f'  {msg}', flush=True)
-def step(n, msg): print(f'\n[{n}] {msg}', flush=True)
+_auth_code = None
 
-def try_click(page, selectors, timeout=8000):
-    for sel in selectors:
-        try:
-            el = page.wait_for_selector(sel, timeout=timeout)
-            if el and el.is_visible():
-                el.click()
-                return True
-        except Exception:
-            continue
-    return False
+class _Handler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        global _auth_code
+        params = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
+        self.send_response(200)
+        self.send_header('Content-Type', 'text/html; charset=utf-8')
+        self.end_headers()
+        if 'code' in params:
+            _auth_code = params['code'][0]
+            html = (
+                '<html><body style="font-family:sans-serif;text-align:center;padding:80px;background:#f0f7ff">'
+                '<h2 style="color:#0071ce">Authorization Complete</h2>'
+                '<p style="font-size:16px">You can close this tab.<br>'
+                'The extension is being submitted automatically.</p>'
+                '</body></html>'
+            )
+        else:
+            html = '<html><body>Authorization failed. Please close and retry.</body></html>'
+        self.wfile.write(html.encode('utf-8'))
+    def log_message(self, *a): pass
 
-def try_fill(page, selectors, value, timeout=6000):
-    for sel in selectors:
-        try:
-            el = page.wait_for_selector(sel, timeout=timeout)
-            if el:
-                el.click()
-                el.fill(value)
-                return True
-        except Exception:
-            continue
-    return False
+def _get_auth_code(client_id):
+    global _auth_code
+    _auth_code = None
+    params = urllib.parse.urlencode({
+        'client_id': client_id, 'redirect_uri': f'http://localhost:{PORT}',
+        'scope': SCOPE, 'response_type': 'code',
+        'access_type': 'offline', 'prompt': 'consent',
+    })
+    server = HTTPServer(('localhost', PORT), _Handler)
+    t = threading.Thread(target=server.handle_request, daemon=True)
+    t.start()
+    webbrowser.open(f'{AUTH_URL}?{params}')
+    t.join(timeout=180)
+    server.server_close()
+    return _auth_code
 
-def wait_for_login(page):
-    step(1, 'Browser opened. Please log in to your Google account.')
-    log('Waiting up to 3 minutes...')
+def _exchange(client_id, secret, code):
+    data = urllib.parse.urlencode({
+        'code': code, 'client_id': client_id, 'client_secret': secret,
+        'redirect_uri': f'http://localhost:{PORT}', 'grant_type': 'authorization_code',
+    }).encode()
+    with urllib.request.urlopen(urllib.request.Request(TOKEN_URL, data=data)) as r:
+        return json.loads(r.read())
+
+def _refresh(client_id, secret, refresh_token):
+    data = urllib.parse.urlencode({
+        'client_id': client_id, 'client_secret': secret,
+        'refresh_token': refresh_token, 'grant_type': 'refresh_token',
+    }).encode()
+    with urllib.request.urlopen(urllib.request.Request(TOKEN_URL, data=data)) as r:
+        return json.loads(r.read())['access_token']
+
+def _api(method, url, token, data=None, binary=False):
+    headers = {'Authorization': f'Bearer {token}', 'x-goog-api-version': '2'}
+    if binary:
+        headers['Content-Type'] = 'application/zip'
+    elif data is not None:
+        data = json.dumps(data).encode()
+        headers['Content-Type'] = 'application/json'
+    req = urllib.request.Request(url, data=data, headers=headers, method=method)
     try:
-        page.wait_for_function(
-            "!window.location.href.includes('accounts.google.com')",
-            timeout=180_000
-        )
-        time.sleep(2)
-        log('Login detected. Continuing...')
-    except PWTimeout:
-        log('Timed out waiting for login.')
-        sys.exit(1)
+        with urllib.request.urlopen(req) as r:
+            return json.loads(r.read())
+    except urllib.error.HTTPError as e:
+        body = e.read().decode('utf-8', errors='replace')
+        print(f'    API error {e.code}: {body[:300]}')
+        return None
 
-def wait_for_dashboard(page):
-    try:
-        page.wait_for_load_state('networkidle', timeout=20_000)
-    except PWTimeout:
-        pass
+# ── Google Cloud auto-setup ───────────────────────────────────────────────────
 
-# ── Main Automation ───────────────────────────────────────────────────────────
+GC_PROJECTS  = 'https://cloudresourcemanager.googleapis.com/v1/projects'
+GC_SERVICES  = 'https://serviceusage.googleapis.com/v1/projects/{proj}/services/chromewebstore.googleapis.com:enable'
+GC_OAUTH_URL = 'https://console.developers.google.com/apis/credentials'
 
-def run():
-    print('\n' + '='*54)
-    print('  Walmart Smart Filter -- Chrome Web Store Submit')
-    print('='*54)
+def setup_google_cloud():
+    """
+    Guide user through minimal Google Cloud setup.
+    Returns (client_id, client_secret).
+    """
+    print("""
+  Google Cloud OAuth2 Setup (one-time, ~3 minutes)
+  ─────────────────────────────────────────────────
+  Opening browser to Google Cloud Console...
+  Follow these steps:
+
+  1. Create project named "WalmartFilter" → click Create
+  2. Left menu → APIs & Services → Library
+     Search "Chrome Web Store API" → Enable
+  3. Left menu → APIs & Services → Credentials
+     → + Create Credentials → OAuth client ID
+     → Application type: Desktop app
+     → Name: WalmartFilter → Create
+  4. Copy the Client ID and Client Secret shown
+  5. Paste them below
+  ─────────────────────────────────────────────────
+""")
+    webbrowser.open('https://console.cloud.google.com/projectcreate')
+    time.sleep(2)
+    webbrowser.open('https://console.cloud.google.com/apis/library/chromewebstore.googleapis.com')
+
+    client_id     = input('  Paste Client ID     : ').strip()
+    client_secret = input('  Paste Client Secret : ').strip()
+    return client_id, client_secret
+
+# ── Main ──────────────────────────────────────────────────────────────────────
+
+def main():
+    print('\n' + '='*56)
+    print('  Walmart Smart Filter — Chrome Web Store Submit')
+    print('='*56)
 
     if not ZIP_PATH.exists():
-        print(f'\nERROR: ZIP not found at {ZIP_PATH}')
+        print(f'\n  ERROR: ZIP not found: {ZIP_PATH}')
+        sys.exit(1)
+    print(f'\n  ZIP: {ZIP_PATH.name} ({ZIP_PATH.stat().st_size // 1024} KB)')
+
+    # Load or create credentials
+    creds = json.loads(CREDS.read_text()) if CREDS.exists() else {}
+
+    if not creds.get('client_id'):
+        creds['client_id'], creds['client_secret'] = setup_google_cloud()
+
+    # Get access token
+    if creds.get('refresh_token'):
+        print('\n  [Auth] Refreshing token...')
+        try:
+            token = _refresh(creds['client_id'], creds['client_secret'], creds['refresh_token'])
+            print('  [Auth] Token refreshed.')
+        except Exception as e:
+            print(f'  [Auth] Refresh failed ({e}). Re-authorizing...')
+            creds.pop('refresh_token', None)
+            token = None
+    else:
+        token = None
+
+    if not token:
+        print('\n  [Auth] Opening browser for Google authorization...')
+        print('  ACTION NEEDED: Click "Allow" in the browser window.')
+        print('  This is required once by Google. All else is automatic.\n')
+        code = _get_auth_code(creds['client_id'])
+        if not code:
+            print('  ERROR: Authorization not received. Please try again.')
+            sys.exit(1)
+        tokens = _exchange(creds['client_id'], creds['client_secret'], code)
+        creds['refresh_token'] = tokens.get('refresh_token', '')
+        token = tokens.get('access_token', '')
+        CREDS.write_text(json.dumps(creds, indent=2))
+        print('  [Auth] Authorized. Session saved for future runs.')
+
+    CREDS.write_text(json.dumps(creds, indent=2))
+
+    # ── Upload ZIP ─────────────────────────────────────────────────────────
+    print('\n  [1/4] Uploading ZIP to Chrome Web Store...')
+    zip_bytes = ZIP_PATH.read_bytes()
+    item_id = creds.get('item_id', '')
+
+    if item_id:
+        url    = f'{UPLOAD_URL}/{item_id}?uploadType=media'
+        result = _api('PUT', url, token, data=zip_bytes, binary=True)
+    else:
+        url    = f'{UPLOAD_URL}?uploadType=media'
+        result = _api('POST', url, token, data=zip_bytes, binary=True)
+
+    if not result:
+        print('  ERROR: Upload failed.')
         sys.exit(1)
 
-    with sync_playwright() as p:
-        # Restore saved browser state (stays logged in after first run)
-        ctx_kwargs = {'slow_mo': 400, 'viewport': {'width': 1280, 'height': 900}}
-        if STATE_FILE.exists():
-            ctx_kwargs['storage_state'] = str(STATE_FILE)
-            log('Restoring saved session...')
+    item_id = result.get('id', item_id)
+    state   = result.get('uploadState', '')
+    creds['item_id'] = item_id
+    CREDS.write_text(json.dumps(creds, indent=2))
+    print(f'  [1/4] Upload complete. ID: {item_id} | State: {state}')
 
-        browser = p.chromium.launch(headless=False, **{})
-        context = browser.new_context(**ctx_kwargs)
-        page    = context.new_page()
+    if state == 'FAILURE':
+        for err in result.get('itemError', []):
+            print(f'         Error: {err}')
+        sys.exit(1)
 
-        # ── Navigate to dashboard ──────────────────────────────────────────
-        page.goto(DASHBOARD, wait_until='domcontentloaded')
-        time.sleep(2)
+    # ── Update listing ─────────────────────────────────────────────────────
+    print('\n  [2/4] Updating store listing...')
+    listing = {
+        'kind': 'chromewebstore#item',
+        'id':   item_id,
+        'listing': {
+            'en-US': {
+                'description':       FULL_DESC,
+                'detailedDescription': FULL_DESC,
+            }
+        }
+    }
+    upd = _api('PUT', f'{ITEMS_URL}/{item_id}?projection=DRAFT', token, data=listing)
+    if upd:
+        print('  [2/4] Listing updated.')
+    else:
+        print('  [2/4] Listing update skipped (fill in Chrome Web Store dashboard).')
 
-        if 'accounts.google.com' in page.url or 'signin' in page.url:
-            wait_for_login(page)
-            page.goto(DASHBOARD, wait_until='domcontentloaded')
+    # ── Submit for review ──────────────────────────────────────────────────
+    print('\n  [3/4] Submitting for review...')
+    pub = _api('POST', f'{ITEMS_URL}/{item_id}/publish', token)
+    if pub:
+        status = pub.get('status', [])
+        print(f'  [3/4] Submitted. Status: {status}')
+    else:
+        print('  [3/4] Submit via API failed.')
+        print(f'         Complete manually: https://chrome.google.com/webstore/devconsole')
 
-        wait_for_dashboard(page)
+    # ── Apply Extension ID to files ────────────────────────────────────────
+    print('\n  [4/4] Applying Extension ID to project files...')
+    import subprocess
+    subprocess.run([sys.executable, 'apply_extension_id.py', item_id], cwd=str(BASE))
 
-        # Save session so next run skips login
-        context.storage_state(path=str(STATE_FILE))
-        log('Session saved.')
-
-        # ── Check developer registration ($5 fee) ─────────────────────────
-        step(2, 'Checking developer registration...')
-        if 'registration' in page.url or page.query_selector('text=registration fee'):
-            log('Developer registration needed.')
-            log('Please complete the $5 one-time registration in the browser.')
-            log('Waiting for you to finish...')
-            page.wait_for_url('**/devconsole**', timeout=300_000)
-            wait_for_dashboard(page)
-            log('Registration complete.')
-        else:
-            log('Already registered.')
-
-        # ── Click "New item" ───────────────────────────────────────────────
-        step(3, 'Opening new item upload...')
-        new_item_selectors = [
-            'text=New item',
-            'a[href*="new-item"]',
-            'button:has-text("New")',
-            '[aria-label*="New item"]',
-            'text=Add new item',
-        ]
-        if not try_click(page, new_item_selectors):
-            log('Cannot find "New item" button automatically.')
-            log('Please click "New item" in the browser.')
-            page.pause()
-
-        wait_for_dashboard(page)
-        time.sleep(1)
-
-        # ── Upload ZIP ─────────────────────────────────────────────────────
-        step(4, f'Uploading {ZIP_PATH.name} ({ZIP_PATH.stat().st_size // 1024} KB)...')
-        upload_selectors = [
-            'input[type=file]',
-            'input[accept=".zip"]',
-            'input[accept*="zip"]',
-        ]
-        uploaded = False
-        for sel in upload_selectors:
-            try:
-                el = page.wait_for_selector(sel, timeout=10_000)
-                if el:
-                    page.set_input_files(sel, str(ZIP_PATH))
-                    uploaded = True
-                    log('ZIP selected.')
-                    break
-            except Exception:
-                continue
-
-        if not uploaded:
-            log('Cannot find file upload field automatically.')
-            log('Please upload the ZIP manually:')
-            log(f'  {ZIP_PATH}')
-            page.pause()
-
-        # Wait for upload to finish
-        time.sleep(4)
-        try:
-            page.wait_for_selector('text=Upload complete', timeout=30_000)
-            log('Upload complete.')
-        except PWTimeout:
-            log('Continuing (upload may still be processing)...')
-
-        # ── Fill in listing details ────────────────────────────────────────
-        step(5, 'Filling in store listing details...')
-
-        # Short description
-        short_selectors = [
-            '[name*="short"]', 'textarea[placeholder*="short"]',
-            '[aria-label*="short description" i]', '[maxlength="132"]',
-        ]
-        if try_fill(page, short_selectors, SHORT_DESC):
-            log('Short description filled.')
-        else:
-            log(f'Please paste short description manually: "{SHORT_DESC}"')
-
-        time.sleep(0.5)
-
-        # Full description
-        full_selectors = [
-            '[name*="description"]:not([maxlength="132"])',
-            'textarea[aria-label*="description" i]',
-            '[data-field="description"] textarea',
-        ]
-        if try_fill(page, full_selectors, FULL_DESC):
-            log('Full description filled.')
-        else:
-            log('Please paste full description manually (see STORE_ASSETS.md).')
-
-        time.sleep(0.5)
-
-        # Category — Shopping
-        cat_selectors = [
-            'select[name*="category"]', '[aria-label*="category" i]',
-        ]
-        for sel in cat_selectors:
-            try:
-                el = page.query_selector(sel)
-                if el:
-                    el.select_option(label='Shopping')
-                    log('Category set to Shopping.')
-                    break
-            except Exception:
-                continue
-
-        # Privacy policy URL
-        priv_selectors = [
-            '[name*="privacy"]', 'input[placeholder*="privacy"]',
-            '[aria-label*="privacy policy" i]',
-        ]
-        if try_fill(page, priv_selectors, PRIVACY_URL):
-            log('Privacy policy URL filled.')
-        else:
-            log(f'Please paste privacy URL manually: {PRIVACY_URL}')
-
-        time.sleep(0.5)
-
-        # ── Save draft ─────────────────────────────────────────────────────
-        step(6, 'Saving draft...')
-        save_selectors = [
-            'button:has-text("Save")', 'text=Save draft',
-            '[aria-label*="save" i]',
-        ]
-        if try_click(page, save_selectors):
-            time.sleep(3)
-            log('Draft saved.')
-        else:
-            log('Please click Save manually.')
-            page.pause()
-
-        # ── Submit for review ──────────────────────────────────────────────
-        step(7, 'Submitting for review...')
-        submit_selectors = [
-            'button:has-text("Submit for review")',
-            'text=Submit for review',
-            '[aria-label*="Submit" i]',
-        ]
-        if try_click(page, submit_selectors):
-            time.sleep(2)
-            # Confirm dialog if it appears
-            try_click(page, ['button:has-text("Submit")', 'text=Confirm'], timeout=4000)
-            time.sleep(3)
-            log('Submitted for review!')
-        else:
-            log('Please click "Submit for review" manually.')
-            page.pause()
-
-        # ── Get Extension ID ───────────────────────────────────────────────
-        step(8, 'Reading Extension ID from URL...')
-        current_url = page.url
-        ext_id = ''
-        parts = current_url.split('/')
-        for part in parts:
-            if len(part) == 32 and part.isalnum():
-                ext_id = part
-                break
-
-        context.storage_state(path=str(STATE_FILE))
-
-        print(f'''
-{"="*54}
+    print(f"""
+{"="*56}
   DONE!
 
-  Extension ID : {ext_id if ext_id else "(check dashboard URL)"}
-  Dashboard    : {DASHBOARD}
+  Extension ID : {item_id}
+  Dashboard    : https://chrome.google.com/webstore/devconsole
   Review time  : 2-7 business days
 
-  Tell Claude the Extension ID to finish setup.
-{"="*54}
-''')
-
-        if ext_id:
-            id_path = pathlib.Path('C:/Users/kayky/Desktop/walmart-filter-extension/.extension_id')
-            id_path.write_text(ext_id)
-            log(f'ID saved. Applying to all files...')
-            import subprocess
-            subprocess.run([sys.executable, 'apply_extension_id.py'],
-                           cwd=str(pathlib.Path(__file__).parent))
-
-        input('\nPress Enter to close browser...')
-        browser.close()
+  Extension URL (after approval):
+  https://chromewebstore.google.com/detail/{item_id}
+{"="*56}
+""")
 
 if __name__ == '__main__':
-    run()
+    main()
