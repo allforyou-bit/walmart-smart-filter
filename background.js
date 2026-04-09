@@ -31,6 +31,24 @@ chrome.runtime.onMessage.addListener((msg, sender) => {
   }
 });
 
+// ── Keyboard shortcut: Ctrl+Shift+W toggles Walmart Direct filter ────────────
+
+chrome.commands.onCommand.addListener((command) => {
+  if (command !== 'toggle-filter') return;
+  chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+    const tab = tabs[0];
+    if (!tab?.url?.includes('walmart.com')) return;
+    chrome.storage.sync.get({ filterThirdParty: true }, (s) => {
+      const newVal = !s.filterThirdParty;
+      chrome.storage.sync.set({ filterThirdParty: newVal });
+      chrome.tabs.sendMessage(tab.id, {
+        type: 'SETTINGS_UPDATED',
+        settings: { filterThirdParty: newVal },
+      });
+    });
+  });
+});
+
 // Clear badge when navigating away from walmart.com
 chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
   if (changeInfo.status === 'loading') {

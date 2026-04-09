@@ -1,0 +1,47 @@
+name: Package & Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run Python tests
+        run: python test/run_tests.py
+
+      - name: Package extension
+        run: |
+          zip -r walmart-smart-filter.zip . \
+            --exclude "*.git*" \
+            --exclude "test/*" \
+            --exclude "*.md" \
+            --exclude "LICENSE" \
+            --exclude "docs/*" \
+            --exclude ".github/*" \
+            --exclude "PROMOTION_POSTS.md" \
+            --exclude "LAUNCH_GUIDE.md" \
+            --exclude "STORE_ASSETS.md"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: walmart-smart-filter.zip
+          body: |
+            ## Walmart Smart Filter ${{ github.ref_name }}
+
+            ### Installation
+            1. Download `walmart-smart-filter.zip` below
+            2. Unzip the file
+            3. Open Chrome → `chrome://extensions/`
+            4. Enable **Developer mode**
+            5. Click **Load unpacked** → select the unzipped folder
+
+            ### What's New
+            See [README](https://github.com/allforyou-bit/walmart-smart-filter#changelog) for full changelog.
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
