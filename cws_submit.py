@@ -71,9 +71,11 @@ class _Handler(BaseHTTPRequestHandler):
                 'The extension is being submitted automatically.</p>'
                 '</body></html>'
             )
+            self.wfile.write(html.encode('utf-8'))
+            threading.Thread(target=self.server.shutdown, daemon=True).start()
         else:
-            html = '<html><body>Authorization failed. Please close and retry.</body></html>'
-        self.wfile.write(html.encode('utf-8'))
+            html = '<html><body>Authorization failed — close and retry.</body></html>'
+            self.wfile.write(html.encode('utf-8'))
     def log_message(self, *a): pass
 
 def _get_auth_code(client_id):
@@ -84,11 +86,15 @@ def _get_auth_code(client_id):
         'scope': SCOPE, 'response_type': 'code',
         'access_type': 'offline', 'prompt': 'consent',
     })
+    auth_url = f'{AUTH_URL}?{params}'
     server = HTTPServer(('localhost', PORT), _Handler)
-    t = threading.Thread(target=server.handle_request, daemon=True)
+    server.timeout = 600
+    t = threading.Thread(target=server.serve_forever, daemon=True)
     t.start()
-    webbrowser.open(f'{AUTH_URL}?{params}')
-    t.join(timeout=180)
+    print(f'\n  AUTH URL:\n  {auth_url}\n')
+    webbrowser.open(auth_url)
+    print('  Waiting up to 10 minutes for authorization...')
+    t.join(timeout=610)
     server.server_close()
     return _auth_code
 
