@@ -26,7 +26,9 @@ Walmart search results mix **Walmart-sold items** with **third-party marketplace
 
 ## Screenshots
 
-> *(Coming soon — extension on Chrome Web Store)*
+![Walmart Smart Filter in action](docs/screenshot1.png)
+
+> More screenshots available on the [Chrome Web Store listing](https://chromewebstore.google.com/detail/walmart-smart-filter/emkhcglnplcglmbckhcajioeglkoammn).
 
 ---
 

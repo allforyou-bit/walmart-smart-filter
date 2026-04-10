@@ -26,7 +26,7 @@ at inflated prices, so I built a Chrome extension to fix it.
 **Completely free.** No account, no data collected.
 
 GitHub: https://github.com/allforyou-bit/walmart-smart-filter
-Chrome Web Store: [link after approval]
+Chrome Web Store: https://chromewebstore.google.com/detail/walmart-smart-filter/emkhcglnplcglmbckhcajioeglkoammn
 
 Happy to answer questions or take feature suggestions!
 ```
@@ -51,7 +51,8 @@ Walmart Smart Filter:
 
 Free, no login, no tracking.
 
-→ https://github.com/allforyou-bit/walmart-smart-filter
+→ Chrome Web Store: https://chromewebstore.google.com/detail/walmart-smart-filter/emkhcglnplcglmbckhcajioeglkoammn
+→ GitHub: https://github.com/allforyou-bit/walmart-smart-filter
 ```
 
 ---
@@ -77,6 +78,7 @@ Built a Chrome extension for Walmart shoppers:
 No external servers. All processing happens in-browser.
 
 GitHub (open source): https://github.com/allforyou-bit/walmart-smart-filter
+Chrome Web Store: https://chromewebstore.google.com/detail/walmart-smart-filter/emkhcglnplcglmbckhcajioeglkoammn
 ```
 
 ---
@@ -121,7 +123,7 @@ Free. No account. No tracking. Works instantly on any Walmart search page.
 ✅ Live deal dashboard in the popup
 ✅ No tracking, no account needed
 
-→ github.com/allforyou-bit/walmart-smart-filter
+→ chromewebstore.google.com/detail/walmart-smart-filter/emkhcglnplcglmbckhcajioeglkoammn
 
 #walmart #deals #chrome #extension
 ```
@@ -138,5 +140,5 @@ Walmart Smart Filter also shows you:
 • Best deal ranked first in preview
 
 Free Chrome extension 👇
-github.com/allforyou-bit/walmart-smart-filter
+chromewebstore.google.com/detail/walmart-smart-filter/emkhcglnplcglmbckhcajioeglkoammn
 ```
